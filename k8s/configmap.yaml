@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trace-config
+  namespace: trace-system
+  labels:
+    app: trace
+data:
+  # 애플리케이션 설정
+  GIN_MODE: "release"
+
+  # 데이터베이스 설정
+  DB_TYPE: "sqlite"
+  DB_PATH: "/app/data/trace.db"
+
+  # Trace 모듈 설정
+  FLUSH_INTERVAL: "5s"
+  BATCH_SIZE: "100"
+  BUFFER_SIZE: "1000"
+  MAX_OPEN_CONNS: "10"
+  MAX_IDLE_CONNS: "5"
+  CONN_MAX_LIFETIME: "1h"
+
+  # 로깅 설정
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"

@@ -1,0 +1,72 @@
+# Prometheus ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: trace-monitor
+  namespace: trace-monitoring
+  labels:
+    app: trace
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: trace
+  endpoints:
+    - port: http
+      path: /stats
+      interval: 30s
+      scrapeTimeout: 10s
+---
+# Grafana Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trace-dashboard
+  namespace: trace-monitoring
+  labels:
+    app: trace
+data:
+  trace-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Trace Dashboard",
+        "tags": ["trace", "monitoring"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{app=\"trace\"}[5m])",
+                "legendFormat": "{{method}} {{path}}"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app=\"trace\"}[5m]))",
+                "legendFormat": "95th percentile"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{app=\"trace\", status=~\"5..\"}[5m])",
+                "legendFormat": "5xx errors"
+              }
+            ]
+          }
+        ]
+      }
+    }

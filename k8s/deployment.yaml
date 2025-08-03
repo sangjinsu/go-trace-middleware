@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trace-app
+  namespace: trace-system
+  labels:
+    app: trace
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: trace
+  template:
+    metadata:
+      labels:
+        app: trace
+        version: v1
+    spec:
+      containers:
+        - name: trace-app
+          image: trace-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: GIN_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: GIN_MODE
+            - name: DB_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: DB_TYPE
+            - name: DB_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: DB_PATH
+            - name: FLUSH_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: FLUSH_INTERVAL
+            - name: BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: BATCH_SIZE
+            - name: BUFFER_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: BUFFER_SIZE
+            - name: MAX_OPEN_CONNS
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: MAX_OPEN_CONNS
+            - name: MAX_IDLE_CONNS
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: MAX_IDLE_CONNS
+            - name: CONN_MAX_LIFETIME
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: CONN_MAX_LIFETIME
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: LOG_LEVEL
+            - name: LOG_FORMAT
+              valueFrom:
+                configMapKeyRef:
+                  name: trace-config
+                  key: LOG_FORMAT
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: trace-secret
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: trace-secret
+                  key: JWT_SECRET
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trace-secret
+                  key: API_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: trace-data
+              mountPath: /app/data
+            - name: trace-logs
+              mountPath: /app/logs
+          livenessProbe:
+            httpGet:
+              path: /stats
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /stats
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: trace-data
+          persistentVolumeClaim:
+            claimName: trace-data-pvc
+        - name: trace-logs
+          emptyDir: {}
+      restartPolicy: Always
